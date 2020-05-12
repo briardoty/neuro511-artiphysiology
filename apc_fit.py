@@ -11,6 +11,7 @@ import numpy as np
 import torch
 import multiprocessing as mp
 import os
+import sys
 
 def apc_fit_unit(unit):
     """
@@ -22,7 +23,7 @@ def apc_fit_unit(unit):
 
     Returns
     -------
-    best_model : TYPE
+    best_model : DataArray
         Parameters defining best fit APC model.
     best_corr : float
         Max correlation coefficient of given unit's actual responses 
@@ -53,22 +54,26 @@ def apc_fit_unit(unit):
     return (best_model, best_corr)
 
 if __name__ == "__main__":
+    # parse args
+    if len(sys.argv) < 2:
+        layer_name = "conv10"
+    else:        
+        layer_name = sys.argv[1]
+    
     # load apc data
     apc_models = xr.open_dataset("data/apc_fit/apc_models_362_16x16.nc")
     
     # load model output
-    outputs_tt = torch.load("data/net_responses/vgg16_conv9_output.pt")
+    outputs_tt = torch.load(f"data/net_responses/vgg16_{layer_name}_output.pt")
     
-    spatial_idx = int((len(outputs_tt[0, 0, 0]) - 1) / 2)
-    unit_responses = outputs_tt[:, 0, 12, spatial_idx, spatial_idx]
-    print(f"Determined actual responses for {len(unit_responses)} stimuli.")
+    n_units = len(outputs_tt[0,0])
+    with mp.Pool(processes=4) as pool:
+      results = pool.map(apc_fit_unit, range(n_units))
     
-    # determine predicted responses of a model to all stimuli
-    model_responses = apc_models.resp[:,2]
-    
-    # compute correlation
-    corr = np.corrcoef(unit_responses.detach(), model_responses)
-    print(corr)
+    output_filename = f"vgg16_{layer_name}_apc_fits.npz"
+    output_dir = os.path.expanduser("data/apc_fit")
+    output_filepath = os.path.join(output_dir, output_filename)
+    np.savez(output_filepath, results)
 
 
 
