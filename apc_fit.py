@@ -24,6 +24,8 @@ def apc_fit_unit(unit):
 
     Returns
     -------
+    unit : int
+        Index of CNN unit.
     i : int
         Index of best APC model.
     best_corr : float
@@ -38,10 +40,10 @@ def apc_fit_unit(unit):
     # print(f"Determined actual responses for {len(unit_responses)} stimuli.")
       
     best_corr = np.NINF
-    for i in range(len(apc_models.models)):
+    for i_model in range(len(apc_models.models)):
       
         # determine predicted responses of a model to all stimuli
-        model_responses = apc_models.resp[:,i]
+        model_responses = apc_models.resp[:, i_model]
         
         # compute correlation
         corr = np.corrcoef(unit_responses, model_responses)[0,1]
@@ -50,7 +52,7 @@ def apc_fit_unit(unit):
             best_corr = corr
             # print(f"Found new best model with correlation = {best_corr}!")
       
-    return (i, best_corr)
+    return (unit, i_model, best_corr)
 
 if __name__ == "__main__":
     # parse args
