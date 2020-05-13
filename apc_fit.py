@@ -12,6 +12,7 @@ import torch
 import multiprocessing as mp
 import os
 import sys
+import tqdm
 
 def apc_fit_unit(unit):
     """
@@ -68,7 +69,8 @@ if __name__ == "__main__":
     
     n_units = len(outputs_tt[0,0])
     with mp.Pool(processes=4) as pool:
-      results = pool.map(apc_fit_unit, range(n_units))
+        results = list(tqdm.tqdm(pool.imap(apc_fit_unit, range(n_units)),
+                                 total=n_units))
     
     output_filename = f"vgg16_{layer_name}_apc_fits.npz"
     output_dir = os.path.expanduser("data/apc_fit")
