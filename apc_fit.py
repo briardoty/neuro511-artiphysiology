@@ -24,8 +24,8 @@ def apc_fit_unit(unit):
 
     Returns
     -------
-    best_model : DataArray
-        Parameters defining best fit APC model.
+    i : int
+        Index of best APC model.
     best_corr : float
         Max correlation coefficient of given unit's actual responses 
         across stimuli and predicted responses of best APC model.
@@ -38,7 +38,6 @@ def apc_fit_unit(unit):
     # print(f"Determined actual responses for {len(unit_responses)} stimuli.")
       
     best_corr = np.NINF
-    best_model = None
     for i in range(len(apc_models.models)):
       
         # determine predicted responses of a model to all stimuli
@@ -49,10 +48,9 @@ def apc_fit_unit(unit):
         if (corr > best_corr):
             # update best
             best_corr = corr
-            best_model = apc_models.models[i]
             # print(f"Found new best model with correlation = {best_corr}!")
       
-    return (best_model, best_corr)
+    return (i, best_corr)
 
 if __name__ == "__main__":
     # parse args
@@ -68,14 +66,14 @@ if __name__ == "__main__":
     outputs_tt = torch.load(f"data/net_responses/vgg16_{layer_name}_output.pt")
     
     n_units = len(outputs_tt[0,0])
-    with mp.Pool(processes=4) as pool:
+    with mp.Pool(processes=6) as pool:
         results = list(tqdm.tqdm(pool.imap(apc_fit_unit, range(n_units)),
                                  total=n_units))
     
     output_filename = f"vgg16_{layer_name}_apc_fits.npz"
     output_dir = os.path.expanduser("data/apc_fit")
     output_filepath = os.path.join(output_dir, output_filename)
-    np.savez(output_filepath, results)
+    np.save(output_filepath, results)
 
 
 
