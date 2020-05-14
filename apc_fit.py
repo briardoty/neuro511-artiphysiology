@@ -13,6 +13,7 @@ import multiprocessing as mp
 import os
 import sys
 import tqdm
+from util.net_response_functions import *
 
 def apc_fit_unit(unit):
     """
@@ -34,9 +35,7 @@ def apc_fit_unit(unit):
         
     """
     # determine actual responses of given unit to all stimuli
-    spatial_idx = int((len(outputs_tt[0, 0, 0]) - 1) / 2)
-    unit_responses = outputs_tt[:, 0, unit, spatial_idx, spatial_idx]
-    unit_responses = unit_responses.detach()
+    unit_responses = get_unit_responses(outputs_tt, unit)
     # print(f"Determined actual responses for {len(unit_responses)} stimuli.")
       
     best_corr = np.NINF
