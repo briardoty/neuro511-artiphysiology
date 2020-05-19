@@ -13,6 +13,7 @@ import multiprocessing as mp
 import os
 import sys
 import tqdm
+from scipy.stats import kurtosis
 from util.net_response_functions import *
 
 def apc_fit_unit(unit):
@@ -68,9 +69,15 @@ if __name__ == "__main__":
     # load model output
     outputs_tt = torch.load(f"data/net_responses/vgg16_{layer_name}_output.pt")
     
-    n_units = len(outputs_tt[0,0])
+    # apply kurtosis filter
+    all_unit_responses = get_unit_responses(outputs_tt)
+    unit_kurtosis = kurtosis(all_unit_responses, axis=0)    
+    k_filtered_i, = np.where((unit_kurtosis >= 2.9) & (unit_kurtosis <= 42))
+    
+    n_units = len(k_filtered_i)
+    print(f"{n_units} pass kurtosis filter.")
     with mp.Pool(processes=6) as pool:
-        results = list(tqdm.tqdm(pool.imap(apc_fit_unit, range(n_units)),
+        results = list(tqdm.tqdm(pool.imap(apc_fit_unit, k_filtered_i),
                                  total=n_units))
     
     output_filename = f"vgg16_{layer_name}_apc_fits.npy"
