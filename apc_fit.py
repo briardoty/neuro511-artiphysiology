@@ -58,16 +58,18 @@ def apc_fit_unit(unit):
 
 if __name__ == "__main__":
     # parse args
-    if len(sys.argv) < 2:
-        layer_name = "conv10"
+    if len(sys.argv) < 3:
+        net_name = "vgg16"
+        layer_name = "conv10"        
     else:        
-        layer_name = sys.argv[1]
+        net_name = sys.argv[1]
+        layer_name = sys.argv[2]
     
     # load apc data
     apc_models = xr.open_dataset("data/apc_fit/apc_models_362_16x16.nc")
     
     # load model output
-    outputs_tt = torch.load(f"data/net_responses/vgg16_{layer_name}_output.pt")
+    outputs_tt = torch.load(f"data/net_responses/{net_name}/{net_name}_{layer_name}_output.pt")
     
     # apply kurtosis filter
     all_unit_responses = get_unit_responses(outputs_tt)
@@ -80,8 +82,8 @@ if __name__ == "__main__":
         results = list(tqdm.tqdm(pool.imap(apc_fit_unit, k_filtered_i),
                                  total=n_units))
     
-    output_filename = f"vgg16_{layer_name}_apc_fits.npy"
-    output_dir = os.path.expanduser("data/apc_fit")
+    output_filename = f"{net_name}_{layer_name}_apc_fits.npy"
+    output_dir = os.path.expanduser(f"data/apc_fit/{net_name}")
     output_filepath = os.path.join(output_dir, output_filename)
     np.save(output_filepath, results)
 

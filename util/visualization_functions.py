@@ -9,13 +9,16 @@ from util.net_response_functions import *
 import matplotlib.pyplot as plt
 import torch
 from torchvision import datasets, models, transforms
+import math
 
 
-def plot_apc_fits_for_unit(layer_name, unit, apc_fits, apc_models, outputs_tt, save_fig=False):
+def plot_apc_fits_for_unit(net_name, layer_name, unit, apc_fits, apc_models, outputs_tt, save_fig=False):
     """
     
     Parameters
     ----------
+    net_name : TYPE
+        DESCRIPTION.
     layer_name : TYPE
         DESCRIPTION.
     unit : TYPE
@@ -43,13 +46,21 @@ def plot_apc_fits_for_unit(layer_name, unit, apc_fits, apc_models, outputs_tt, s
     
     # get y data (predicted responses from unit's best fit model)
     (i_model, best_corr) = apc_fits_dict[unit]
+    # print(f"Correlation: {best_corr}")
     model_responses = apc_models.resp[:, int(i_model)]
-    print(f"Correlation: {best_corr}")
+    
+    # apc params
+    model = apc_models.models[int(i_model)]
+    mu_a = math.degrees(model.or_mean.values)
+    sd_a = math.degrees(model.or_sd.values)
+    mu_c = model.cur_mean.values
+    sd_c = model.cur_sd.values
     
     # plot 'em
     fig, axes = plt.subplots(1, figsize=(5, 5))
-    title = f"{layer_name}_u{unit}"
-    axes.set_title(title)
+    title = f"{net_name}_{layer_name}_u{unit}"
+    fig.suptitle(title)
+    axes.set_title(f"mu_a={round(mu_a, 3)}; mu_c={mu_c}; corr={round(best_corr, 3)}")
     axes.set_xlabel("Unit response")
     axes.set_ylabel("Model prediction")
     
@@ -59,7 +70,7 @@ def plot_apc_fits_for_unit(layer_name, unit, apc_fits, apc_models, outputs_tt, s
     if not save_fig:
         return
 
-    name = f"./data/figures/{title}.png"
+    name = f"./data/figures/{net_name}/{title}.png"
     plt.savefig(name, dpi=300, bbox_inches='tight')
 
 def imshow(img):
