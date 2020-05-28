@@ -38,6 +38,13 @@ nets = {
     }
 }
 
+def get_net_tag(net_name, snapshot):
+    net_tag = f"{net_name}"
+    if (snapshot is not None):
+        net_tag += f"_{snapshot}"
+        
+    return net_tag
+
 class NetManager():
     
     def __init__(self, net_name, n_classes, data_dir, pretrained=False):
@@ -59,23 +66,26 @@ class NetManager():
         n_features = self.net.classifier[-1].in_features
         self.net.classifier[-1] = nn.Linear(n_features, self.n_classes)
     
-    def save_net_snapshot(self, epoch):
-        filename = f"{self.net_name}_{epoch}.pt"
+    def save_net_snapshot(self, snapshot):
+        net_tag = get_net_tag(self.net_name, snapshot)
+        filename = f"{net_tag}.pt"
         net_output_dir = os.path.join(self.data_dir, "nets/")
         net_filepath = os.path.join(net_output_dir, filename)
     
-    def load_net_snapshot(self, epoch):
-        self.net_tag = f"{self.net_name}_ep{epoch}"
-        filename = f"{self.net_tag}.pt"
+    def load_net_snapshot(self, snapshot):
+        self.snapshot = snapshot
+        net_tag = get_net_tag(self.net_name, self.snapshot)
+        filename = f"{net_tag}.pt"
         net_output_dir = os.path.join(self.data_dir, "nets/")
         net_filepath = os.path.join(net_output_dir, filename)
         
         self.net.load_state_dict(torch.load(net_filepath, map_location=self.device))
         self.net.eval()
         
-    def save_outputs(self):
+    def save_net_responses(self):
         self._responses = torch.stack(self._responses)
-        filename = f"{self.net_tag}_{self.target_layer}_output.pt"
+        net_tag = get_net_tag(self.net_name, self.snapshot)
+        filename = f"{net_tag}_{self.target_layer}_output.pt"
         sub_dir = f"net_responses/{self.net_name}/"
         output_dir = os.path.join(self.data_dir, sub_dir)
         output_filepath = os.path.join(output_dir, filename)
@@ -109,21 +119,47 @@ class NetManager():
         
         print(f"Generated {len(self._responses)} responses.")
         
-    def train_model(criterion, optimizer, scheduler, num_epochs=25, n_snapshots=4):
+    def load_imagenette(self):
+        data_transforms = {
+            "train": transforms.Compose([
+                transforms.RandomResizedCrop(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ]),
+            "val": transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ]),
+        }
+        
+        imagenette_dir = os.path.join(self.data_dir, "imagenette2/")
+        image_datasets = { x: datasets.ImageFolder(os.path.join(imagenette_dir, x),
+                                                   data_transforms[x])
+                          for x in ["train", "val"] }
+        self.dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
+                                                     shuffle=True, num_workers=4)
+                          for x in ['train', 'val']}
+        self.dataset_sizes = { x: len(image_datasets[x]) for x in ["train", "val"]}
+        self.class_names = image_datasets["train"].classes
+        
+    def train_model(self, criterion, optimizer, scheduler, n_epochs=25, n_snapshots=4):
         since = time.time()
         
         best_model_wts = copy.deepcopy(self.net.state_dict())
         best_acc = 0.0
     
-        for epoch in range(num_epochs):
-            print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        for epoch in range(n_epochs):
+            print('Epoch {}/{}'.format(epoch, n_epochs - 1))
             print('-' * 10)
     
             # check if we should take a snapshot
-            if (epoch % math.ceil(num_epochs/n_snapshots) == 0 
-                or epoch == num_epochs - 1):
+            if (epoch % math.ceil(n_epochs/n_snapshots) == 0 
+                or epoch == n_epochs - 1):
               print(f"Saving network snapshot at epoch {epoch}")
-              save_net_snapshot(net_name, epoch, self.net)
+              self.save_net_snapshot(epoch)
     
             # Each epoch has a training and validation phase
             for phase in ['train', 'val']:
@@ -136,7 +172,7 @@ class NetManager():
                 running_corrects = 0
     
                 # Iterate over data.
-                for inputs, labels in dataloaders[phase]:
+                for inputs, labels in self.dataloaders[phase]:
                     inputs = inputs.to(self.device)
                     labels = labels.to(self.device)
     
@@ -161,8 +197,8 @@ class NetManager():
                 if phase == 'train':
                     scheduler.step()
     
-                epoch_loss = running_loss / dataset_sizes[phase]
-                epoch_acc = running_corrects.double() / dataset_sizes[phase]
+                epoch_loss = running_loss / self.dataset_sizes[phase]
+                epoch_acc = running_corrects.double() / self.dataset_sizes[phase]
     
                 print('{} Loss: {:.4f} Acc: {:.4f}'.format(
                     phase, epoch_loss, epoch_acc))
@@ -184,10 +220,6 @@ class NetManager():
 
 if __name__ == "__main__":
     net_manager = NetManager("vgg16", 10, "data")
-    net_manager.load_net_snapshot(14)
-    net_manager.set_output_hook("conv8")
-    net_manager.run_test_stimuli(image_loader)
-    net_manager.save_outputs()
         
         
         
