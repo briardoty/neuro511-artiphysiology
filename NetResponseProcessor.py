@@ -104,7 +104,7 @@ class NetResponseProcessor():
           
         return (unit, best_model_i, best_corr)
         
-    def apc_fit_all(self):
+    def apc_fit_all(self, processes=4):
         # apply kurtosis filter
         all_unit_responses = self.get_unit_responses()
         unit_kurtosis = kurtosis(all_unit_responses, axis=0)    
@@ -112,19 +112,19 @@ class NetResponseProcessor():
         
         n_units = len(k_filtered_i)
         print(f"{n_units} units pass kurtosis filter.")
-        with mp.Pool(processes=6) as pool:
+        with mp.Pool(processes=processes) as pool:
             results = list(tqdm.tqdm(pool.imap(self.apc_fit_unit, k_filtered_i),
                                      total=n_units))
         
         output_filename = f"{self.net_tag}_{self.layer_name}_apc_fits.npy"
-        output_dir = os.path.join(self.data_dir, f"apc_fit/{net_name}/")
+        output_dir = os.path.join(self.data_dir, f"apc_fit/{self.net_name}/")
         output_filepath = os.path.join(output_dir, output_filename)
         np.save(output_filepath, results)
     
 
 if __name__ == "__main__":
     net_resp_proc = NetResponseProcessor("vgg16", "conv8", "ep14", "data")
-    net_resp_proc.apc_fit_all()
+    net_resp_proc.apc_fit_all(6)
     
     
     

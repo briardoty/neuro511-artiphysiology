@@ -49,18 +49,21 @@ class NetManager():
     
     def __init__(self, net_name, n_classes, data_dir, pretrained=False):
         self.net_name = net_name
+        self.pretrained = pretrained
         self.data_dir = os.path.expanduser(data_dir)
         self.n_classes = n_classes
         self.device = torch.device("cuda:0" if torch.cuda.is_available() 
                                    else "cpu")
+        self.init_net()
         
-        if net_name == "vgg16":
-            self.net = models.vgg16(pretrained=pretrained)
-        elif net_name == "alexnet":
-            self.net = models.alexnet(pretrained=pretrained)
+    def init_net(self):
+        if self.net_name == "vgg16":
+            self.net = models.vgg16(pretrained=self.pretrained)
+        elif self.net_name == "alexnet":
+            self.net = models.alexnet(pretrained=self.pretrained)
         else:
             # default to vgg16
-            self.net = models.vgg16(pretrained=pretrained)
+            self.net = models.vgg16(pretrained=self.pretrained)
             
         # update net's output layer to match n_classes
         n_features = self.net.classifier[-1].in_features
@@ -79,6 +82,7 @@ class NetManager():
         net_output_dir = os.path.join(self.data_dir, "nets/")
         net_filepath = os.path.join(net_output_dir, filename)
         
+        self.init_net()
         self.net.load_state_dict(torch.load(net_filepath, map_location=self.device))
         self.net.eval()
         
