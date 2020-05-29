@@ -70,6 +70,8 @@ class NetManager():
         self.net.classifier[-1] = nn.Linear(n_features, self.n_classes)
     
     def save_net_snapshot(self, snapshot):
+        print(f"Saving network snapshot at {snapshot}")
+        
         net_tag = get_net_tag(self.net_name, snapshot)
         filename = f"{net_tag}.pt"
         net_output_dir = os.path.join(self.data_dir, "nets/")
@@ -160,10 +162,8 @@ class NetManager():
             print('-' * 10)
     
             # check if we should take a snapshot
-            if (epoch % math.ceil(n_epochs/n_snapshots) == 0 
-                or epoch == n_epochs - 1):
-              print(f"Saving network snapshot at epoch {epoch}")
-              self.save_net_snapshot(epoch)
+            if (epoch % math.ceil(n_epochs/n_snapshots) == 0):
+              self.save_net_snapshot(f"epoch{epoch}")
     
             # Each epoch has a training and validation phase
             for phase in ['train', 'val']:
@@ -218,6 +218,9 @@ class NetManager():
         print('Training complete in {:.0f}m {:.0f}s'.format(
             time_elapsed // 60, time_elapsed % 60))
         print('Best val Acc: {:4f}'.format(best_acc))
+    
+        # save snapshot at end (not necessarily best...)
+        self.save_net_snapshot(f"epoch{epoch}")
     
         # load best net weights
         self.net.load_state_dict(best_model_wts)
