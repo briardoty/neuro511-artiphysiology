@@ -28,14 +28,14 @@ class NetResponseProcessor():
         self.layer_name = layer_name
         self.data_dir = os.path.expanduser(data_dir)
         
-        self._load_net_responses(layer_name)
+        self._load_net_responses()
             
         self.apc_models = xr.open_dataset(os.path.join(self.data_dir, 
                                                        "apc_fit/apc_models_362_16x16.nc"))
         
-    def _load_net_responses(self, layer_name):
+    def _load_net_responses(self):
         sub_dir = f"net_responses/{self.net_name}/"
-        filename = f"{self.net_tag}_{layer_name}_output.pt"
+        filename = f"{self.net_tag}_{self.layer_name}_output.pt"
         output_dir = os.path.join(self.data_dir, sub_dir)
         output_filepath = os.path.join(output_dir, filename)
         

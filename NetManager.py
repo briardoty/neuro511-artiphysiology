@@ -45,6 +45,23 @@ def get_net_tag(net_name, snapshot):
         
     return net_tag
 
+def load_test_stimuli(data_dir, img_xy = 200):
+    # pull in images
+    data_transforms = transforms.Compose([
+        transforms.CenterCrop(img_xy),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+        std=[0.229, 0.224, 0.225])
+    ])
+    
+    image_dataset = datasets.ImageFolder(
+        root=os.path.join(data_dir, "stimuli/"),
+        transform=data_transforms)
+    
+    image_loader = torch.utils.data.DataLoader(image_dataset)
+    
+    return (image_dataset, image_loader)
+
 class NetManager():
     
     def __init__(self, net_name, n_classes, data_dir, pretrained=False):
@@ -55,6 +72,8 @@ class NetManager():
         self.device = torch.device("cuda:0" if torch.cuda.is_available() 
                                    else "cpu")
         self.init_net()
+        
+        (_, self.image_loader) = load_test_stimuli(self.data_dir)
         
     def init_net(self):
         if self.net_name == "vgg16":
