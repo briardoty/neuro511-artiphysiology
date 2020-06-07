@@ -114,7 +114,7 @@ class NetManager():
         self.init_net()
         snapshot_state = torch.load(net_filepath, map_location=self.device)
         # null check for backward compatibility
-        state_dict = snapshot_state.get("stat_dict") if snapshot_state.get("stat_dict") is not None else snapshot_state
+        state_dict = snapshot_state.get("state_dict") if snapshot_state.get("state_dict") is not None else snapshot_state
         self.net.load_state_dict(state_dict)
         self.net = self.net.to(self.device)
         self.net.eval()
@@ -225,7 +225,7 @@ class NetManager():
         best_acc = 0.0
         best_epoch = -1
     
-        epochs = range(epoch, epoch + n_epochs)
+        epochs = range(self.epoch, self.epoch + n_epochs)
         for epoch in epochs:
             print('Epoch {}/{}'.format(epoch, n_epochs - 1))
             print('-' * 10)
