@@ -22,24 +22,25 @@ import xarray as xr
 
 class NetResponseProcessor():
     
-    def __init__(self, net_name, layer_name, net_snapshot, data_dir):
+    def __init__(self, net_name, trial, layer_name, net_snapshot, data_dir):
         self.net_name = net_name
+        self.trial = trial
         self.net_tag = get_net_tag(self.net_name, net_snapshot)
         self.layer_name = layer_name
         self.data_dir = os.path.expanduser(data_dir)
         
-        self._load_net_responses()
+        self.load_net_responses()
             
         self.apc_models = xr.open_dataset(os.path.join(self.data_dir, 
                                                        "apc_fit/apc_models_362_16x16.nc"))
         
-    def _load_net_responses(self):
-        sub_dir = f"net_responses/{self.net_name}/"
+    def load_net_responses(self):
+        sub_dir = f"net_responses/{self.net_name}/trial{self.trial}"
         filename = f"{self.net_tag}_{self.layer_name}_output.pt"
         output_dir = os.path.join(self.data_dir, sub_dir)
         output_filepath = os.path.join(output_dir, filename)
         
-        self._responses_tt = torch.load(output_filepath)
+        self.responses_tt = torch.load(output_filepath)
         
     def get_unit_responses(self, units=None):
         """
@@ -55,12 +56,12 @@ class NetResponseProcessor():
             DESCRIPTION.
     
         """
-        spatial_idx = int((len(self._responses_tt[0, 0, 0]) - 1) / 2)
+        spatial_idx = int((len(self.responses_tt[0, 0, 0]) - 1) / 2)
         
         if units is None:
-            unit_responses = self._responses_tt[:, 0, :, spatial_idx, spatial_idx]
+            unit_responses = self.responses_tt[:, 0, :, spatial_idx, spatial_idx]
         else:
-            unit_responses = self._responses_tt[:, 0, units, spatial_idx, spatial_idx]
+            unit_responses = self.responses_tt[:, 0, units, spatial_idx, spatial_idx]
         
         unit_responses = unit_responses.detach()
         

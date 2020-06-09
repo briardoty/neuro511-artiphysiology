@@ -172,18 +172,21 @@ class NetManager():
         print(f"Generated {len(self._responses)} responses.")
         
     def load_imagenette(self):
+        normalize = transforms.Normalize([0.485, 0.456, 0.406], 
+                                         [0.229, 0.224, 0.225])
+        
+        size = 128
         data_transforms = {
             "train": transforms.Compose([
-                transforms.RandomResizedCrop(224),
+                transforms.RandomResizedCrop(size),
                 transforms.RandomHorizontalFlip(), 
                 transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                normalize
             ]),
             "val": transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
+                transforms.RandomResizedCrop(size),
                 transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                normalize
             ]),
         }
         
@@ -290,20 +293,24 @@ class NetManager():
         best_acc = 0.0
         best_epoch = -1
     
-        epochs = range(self.snapshot_epoch, self.snapshot_epoch + n_epochs)
-        for epoch in epochs:
-            print('Epoch {}/{}'.format(epoch, self.snapshot_epoch + n_epochs - 1))
-            print('-' * 10)
+        # save initial random state if no snapshot loaded
+        if (self.snapshot_epoch == 0):
+            self.save_net_snapshot(self.snapshot_epoch, math.nan)
     
-            # check if we should take a scheduled snapshot
-            if (n_snapshots is not None and epoch % math.ceil(n_epochs/n_snapshots) == 0):
-                self.save_net_snapshot(epoch)
+        epochs = range(self.snapshot_epoch + 1, self.snapshot_epoch + n_epochs + 1)
+        for epoch in epochs:
+            print('Epoch {}/{}'.format(epoch, self.snapshot_epoch + n_epochs))
+            print('-' * 10)
     
             # training phase
             self.train_net(criterion, optimizer, scheduler)
             
             # validation phase
             epoch_acc = self.evaluate_net(criterion)
+    
+            # check if we should take a scheduled snapshot
+            if (n_snapshots is not None and epoch % math.ceil(n_epochs/n_snapshots) == 0):
+                self.save_net_snapshot(epoch, epoch_acc)
     
             # copy net if best yet
             if epoch_acc > best_acc:

@@ -35,14 +35,15 @@ def imshow(img):
 
 class Visualizer(NetResponseProcessor):
     
-    def __init__(self, net_name, layer_name, net_snapshot, data_dir):
+    def __init__(self, net_name, trial, layer_name, net_snapshot, data_dir):
         
         # load all the typical stuff from NetResponseProcessor
-        super().__init__(net_name, layer_name, net_snapshot, data_dir)
+        super().__init__(net_name, trial, layer_name, net_snapshot, data_dir)
         
         # also load apc fits
         self.apc_fits = np.load(
-            os.path.join(self.data_dir, f"apc_fit/{self.net_name}/{self.net_tag}_{self.layer_name}_apc_fits.npy"),
+            os.path.join(self.data_dir, 
+                         f"apc_fit/{self.net_name}/trial{self.trial}/{self.net_tag}_{self.layer_name}_apc_fits.npy"),
             allow_pickle=True
         )
         
@@ -81,7 +82,9 @@ class Visualizer(NetResponseProcessor):
         fig, axes = plt.subplots(1, figsize=(5, 5))
         title = f"{self.net_tag}_{self.layer_name}_u{unit}"
         fig.suptitle(title)
-        axes.set_title(f"mu_a={round(mu_a, 3)}; mu_c={mu_c}; corr={round(best_corr, 3)}")
+        subtitle = "mu_a={:.4f}; sd_a={:.4f}; mu_c={:.4f}; sd_c={:.4f}; corr={:.4f}".format(
+            mu_a, sd_a, mu_c, sd_c, best_corr)
+        axes.set_title(subtitle)
         axes.set_xlabel("Unit response")
         axes.set_ylabel("Model prediction")
         
