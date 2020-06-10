@@ -14,6 +14,7 @@ from NetResponseProcessor import *
 from NetManager import *
 import math
 import matplotlib.pyplot as plt
+import matplotlib.backends.backend_pdf
 
 
 def imshow(img):
@@ -41,21 +42,39 @@ class Visualizer(NetResponseProcessor):
         super().__init__(net_name, trial, layer_name, net_snapshot, data_dir)
         
         # also load apc fits
+        sub_dir = os.path.join(self.data_dir, f"apc_fit/{self.net_name}/")
+        if self.trial is not None:
+            sub_dir = os.path.join(sub_dir, f"trial{self.trial}/")
         self.apc_fits = np.load(
-            os.path.join(self.data_dir, 
-                         f"apc_fit/{self.net_name}/trial{self.trial}/{self.net_tag}_{self.layer_name}_apc_fits.npy"),
+            os.path.join(sub_dir, 
+                         f"{self.net_tag}_{self.layer_name}_apc_fits.npy"),
             allow_pickle=True
         )
         
         # and test stim for display
         (self.image_dataset, _) = load_test_stimuli(self.data_dir)
-
     
     def plot_unit_summary(self, unit, save_fig=False):
-        self.plot_apc_fits_for_unit(unit, save_fig)
-        self.display_top_and_bottom(unit, 10, save_fig)
+        apc_fig = self.plot_apc_fits_for_unit(unit)
+        (top_fig, bot_fig) = self.display_top_and_bottom(unit, 10)
+        
+        # plt.show()
+        
+        if not save_fig:
+            return
+        
+        sub_dir = os.path.join(data_dir, f"figures/{net_name}/")
+        if (self.trial is not None):
+            sub_dir = os.path.join(sub_dir, f"trial{self.trial}/")
+        filename = f"{self.net_tag}_{self.layer_name}_u{unit}.pdf"
+        pdf_file = os.path.join(sub_dir, filename)
+        pdf = matplotlib.backends.backend_pdf.PdfPages(pdf_file)
+        pdf.savefig(apc_fig)
+        pdf.savefig(top_fig)
+        pdf.savefig(bot_fig)
+        pdf.close()
     
-    def plot_apc_fits_for_unit(self, unit, save_fig=False):
+    def plot_apc_fits_for_unit(self, unit):
     
         # convert to dict
         apc_fits_dict = {unit : (i_model, corr) 
@@ -79,10 +98,10 @@ class Visualizer(NetResponseProcessor):
         sd_c = model.cur_sd.values
         
         # plot 'em
-        fig, axes = plt.subplots(1, figsize=(5, 5))
+        fig, axes = plt.subplots(1, figsize=(7, 5))
         title = f"{self.net_tag}_{self.layer_name}_u{unit}"
         fig.suptitle(title)
-        subtitle = "mu_a={:.4f}; sd_a={:.4f}; mu_c={:.4f}; sd_c={:.4f}; corr={:.4f}".format(
+        subtitle = "mu_a={:.2f}; sd_a={:.2f}; mu_c={:.2f}; sd_c={:.2f}; corr={:.4f}".format(
             mu_a, sd_a, mu_c, sd_c, best_corr)
         axes.set_title(subtitle)
         axes.set_xlabel("Unit response")
@@ -90,15 +109,9 @@ class Visualizer(NetResponseProcessor):
         
         axes.plot(unit_responses, model_responses, "k.")
         
-        # optional save
-        if not save_fig:
-            plt.show()
-            return
-    
-        fig_filename = os.path.join(self.data_dir, f"figures/{net_name}/{title}.png")
-        plt.savefig(fig_filename, dpi=300, bbox_inches='tight')
+        return fig
         
-    def display_top_and_bottom(self, unit, n, save_fig=False):
+    def display_top_and_bottom(self, unit, n):
         """
         For a given unit, display the top/bottom n stimuli ranked by response activation
         
@@ -129,10 +142,12 @@ class Visualizer(NetResponseProcessor):
     
         # display those stimuli
         title = f"{self.net_tag}_{self.layer_name}_u{unit}"
-        self.show_images(top_n_idx, "TOP " + title, save_fig)
-        self.show_images(bot_n_idx, "BOT " + title, save_fig)
+        top_fig = self.show_images(top_n_idx, "TOP " + title)
+        bot_fig = self.show_images(bot_n_idx, "BOT " + title)
         
-    def show_images(self, idxs, title, save_fig=False):
+        return (top_fig, bot_fig)
+        
+    def show_images(self, idxs, title):
         """
         Plot images with indexes idxs from self.image_dataset
         
@@ -149,24 +164,19 @@ class Visualizer(NetResponseProcessor):
         None.
     
         """
-        fig = plt.figure(figsize=(25, 4))
-        fig.suptitle(title)
-    
-        fig_i = 0
+        fig = plt.figure(figsize=(15, 3))
+        
+        fig_i = 1
         for i in idxs:
             img, label = self.image_dataset[i]
             img = img.numpy()
-            ax = fig.add_subplot(2, 20/2, fig_i+1, xticks=[], yticks=[])
+            ax = fig.add_subplot(1, len(idxs), fig_i)
+            ax.axis("off")
+            fig.suptitle(title)
             imshow(img)
             fig_i += 1
-            
-        # optional save
-        if not save_fig:
-            plt.show()
-            return
-    
-        name = f"./data/figures/{net_name}/{title}.png"
-        plt.savefig(name, dpi=300, bbox_inches='tight')
+        
+        return fig
         
     def get_n_most_selective_units(self, n):
         """
@@ -190,13 +200,13 @@ class Visualizer(NetResponseProcessor):
     
 if __name__ == "__main__":
     net_name = "vgg16"
-    snapshot = "epoch24"
+    snapshot = 24
     layer_name = "conv8"
     data_dir = "./data"
     unit = 271
-    save_fig = False
+    save_fig = True
     
-    visualizer = Visualizer(net_name, layer_name, snapshot, data_dir)
+    visualizer = Visualizer(net_name, 1, layer_name, snapshot, data_dir)
     visualizer.plot_unit_summary(unit, save_fig)
     
     

@@ -6,17 +6,12 @@ Created on Wed May 27 17:42:10 2020
 @author: briardoty
 """
 import torch
-import torch.nn as nn
 import numpy as np
-import torchvision
-from torchvision import datasets, models, transforms
-import matplotlib.pyplot as plt
 import os
-import math
-from NetManager import *
 import multiprocessing as mp
 from scipy.stats import kurtosis
 import tqdm
+from NetManager import get_net_tag
 import xarray as xr
 
 
@@ -35,10 +30,12 @@ class NetResponseProcessor():
                                                        "apc_fit/apc_models_362_16x16.nc"))
         
     def load_net_responses(self):
-        sub_dir = f"net_responses/{self.net_name}/trial{self.trial}"
+        sub_dir = os.path.join(self.data_dir, f"net_responses/{self.net_name}/")
+        if self.trial is not None:
+            sub_dir = os.path.join(sub_dir, f"trial{self.trial}/")
+        
         filename = f"{self.net_tag}_{self.layer_name}_output.pt"
-        output_dir = os.path.join(self.data_dir, sub_dir)
-        output_filepath = os.path.join(output_dir, filename)
+        output_filepath = os.path.join(sub_dir, filename)
         
         self.responses_tt = torch.load(output_filepath)
         
