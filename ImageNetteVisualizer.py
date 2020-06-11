@@ -50,7 +50,7 @@ class ImageNetteVisualizer(NetResponseProcessor):
          _, 
          _) = load_imagenette(self.data_dir)
         
-    def show_top_and_bottom_with_box(self, ti, tr, tc, bi, br, bc, rfpd, k):
+    def show_top_and_bottom_with_box(self, ti, tr, tc, bi, br, bc, rfpd, k, save_fig=False):
         """
 
         Parameters
@@ -73,6 +73,7 @@ class ImageNetteVisualizer(NetResponseProcessor):
             Unit.
 
         """
+        unit = k
         sz = rfpd['size']
         x0 = rfpd['x0']
         dx = rfpd['stride']
@@ -86,7 +87,7 @@ class ImageNetteVisualizer(NetResponseProcessor):
             j0 = x0 + dx * tc[k][i][1]
             print("  Top",i,"image",j," response =",tr[k][i])
             title = "Unit " + str(k) + "  Top " + str(i+1)
-            self.im_show_box(j,i0,j0,sz,title)
+            self.im_show_box(j,i0,j0,sz,title, unit, save_fig)
         
         for i in range(n):
             j = bi[k][i]
@@ -94,9 +95,9 @@ class ImageNetteVisualizer(NetResponseProcessor):
             j0 = x0 + dx * bc[k][i][1]
             print("  Bottom",i,"image",j," response =",br[k][i])
             title = "Unit " + str(k) + "  Bot " + str(i+1)
-            self.im_show_box(j,i0,j0,sz,title)
+            self.im_show_box(j,i0,j0,sz,title, unit, save_fig)
             
-    def im_show_box(self, k, i0, j0, w, title):
+    def im_show_box(self, k, i0, j0, w, title, unit, save_fig=False):
         #
         #       k  - Index of image
         #  (i0,j0) - lower left corner of box (pix)
@@ -112,9 +113,24 @@ class ImageNetteVisualizer(NetResponseProcessor):
         d = d - dmin
         d = d / (dmax - dmin)
         self.im_draw_box(d,i0,j0,w)
-        plt.imshow(np.transpose(d, (1,2,0)))
+        img = np.transpose(d, (1,2,0))
+        plt.imshow(img)
         plt.title(title)
         plt.show()
+        
+        if not save_fig:
+            return
+        
+        sub_dir = os.path.join(self.data_dir, f"figures/{self.net_name}/")
+        if (self.trial is not None):
+            sub_dir = os.path.join(sub_dir, f"trial{self.trial}/")
+            
+        sub_dir = os.path.join(sub_dir, f"{unit}/")
+        if not os.path.exists(sub_dir):
+            os.makedirs(sub_dir)
+        filename = f"{self.net_tag}_{self.layer_name}_{title}.png"
+        filename = os.path.join(sub_dir, filename)
+        plt.imsave(filename, img)
         
     def im_draw_box(self, d,i0,j0,w):
         #      d  - numpy array [3][xn][xn] to over-write

@@ -58,12 +58,12 @@ class Visualizer(NetResponseProcessor):
         apc_fig = self.plot_apc_fits_for_unit(unit)
         (top_fig, bot_fig) = self.display_top_and_bottom(unit, 10)
         
-        # plt.show()
+        plt.show()
         
         if not save_fig:
             return
         
-        sub_dir = os.path.join(data_dir, f"figures/{net_name}/")
+        sub_dir = os.path.join(self.data_dir, f"figures/{self.net_name}/")
         if (self.trial is not None):
             sub_dir = os.path.join(sub_dir, f"trial{self.trial}/")
         filename = f"{self.net_tag}_{self.layer_name}_u{unit}.pdf"
